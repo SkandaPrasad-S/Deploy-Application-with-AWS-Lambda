@@ -3,7 +3,6 @@ import jsonwebtoken from 'jsonwebtoken'
 import { createLogger } from '../../utils/logger.mjs'
 
 const logger = createLogger('auth')
-
 const jwksUrl = 'https://test-endpoint.auth0.com/.well-known/jwks.json'
 
 export async function handler(event) {
@@ -45,9 +44,19 @@ export async function handler(event) {
 async function verifyToken(authHeader) {
   const token = getToken(authHeader)
   const jwt = jsonwebtoken.decode(token, { complete: true })
+  const kid = jwt?.header?.kid
 
-  // TODO: Implement token verification
-  return undefined;
+  if (!kid) throw new Error('No Key ID found in token')
+
+  const jwks = await Axios.get(jwksUrl)
+  const signingKey = jwks.data.keys.find(key => key.kid === kid)
+
+  if (!signingKey) throw new Error('Signing key not found in JWKS')
+
+  const publicKey = getPublicKey(signingKey)
+  
+  // Verify the token using the public key and the RS256 algorithm
+  return jsonwebtoken.verify(token, publicKey, { algorithms: ['RS256'] })
 }
 
 function getToken(authHeader) {
@@ -60,4 +69,9 @@ function getToken(authHeader) {
   const token = split[1]
 
   return token
+}
+
+function getPublicKey(signingKey) {
+  // Convert the JWKS key to a PEM format for jsonwebtoken to use
+  return `-----BEGIN CERTIFICATE-----\n${signingKey.x5c[0]}\n-----END CERTIFICATE-----`
 }
