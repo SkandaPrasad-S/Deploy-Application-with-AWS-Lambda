@@ -1,36 +1,39 @@
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
+import { TodosService } from '../../businessLogic/todos'
 import { createLogger } from '../../utils/logger.mjs'
 
-const logger = createLogger('get_todo')
-
-const dynamoDbClient = DynamoDBDocument.from(new DynamoDB())
-
-const todosTable = process.env.TODOS_TABLE
+const logger = createLogger('getTodos')
+const todosService = new TodosService(
+  process.env.TODOS_TABLE,
+  process.env.IMAGES_S3_BUCKET,
+  parseInt(process.env.SIGNED_URL_EXPIRATION)
+)
 
 export async function handler(event) {
-  logger.info("Event is",{ event })
+  logger.info('Processing event', { event })
 
-  // Assuming userId is available in the event object
-  const userId = event.requestContext.authorizer?.principalId ?? "default_user";
-  logger.info("User is ", { userId })
+  try {
+    const userId = event.requestContext.authorizer?.principalId ?? 'default_user'
+    logger.info('Fetching todos for user', { userId })
 
-  const queryCommand = {
-    TableName: todosTable,
-    KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': userId
+    const items = await todosService.getTodos(userId)
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ items })
     }
-  };
-
-  const result = await dynamoDbClient.query(queryCommand);
-  const items = result.Items;
-
-  return {
-    statusCode: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify({ items })
-  };
+  } catch (error) {
+    logger.error('Error fetching todos', { error })
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        error: 'Could not fetch todos'
+      })
+    }
+  }
 }
