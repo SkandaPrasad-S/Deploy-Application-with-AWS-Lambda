@@ -1,8 +1,4 @@
 service: serverless-todo-app
-
-plugins:
-  - serverless-iam-roles-per-function
-
 frameworkVersion: '4'
 
 provider:
@@ -29,6 +25,8 @@ provider:
             - dynamodb:Query
             - dynamodb:PutItem
             - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            - dynamodb:UpdateItem
           Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
         - Effect: Allow
           Action:
@@ -44,7 +42,6 @@ functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
 
-  # TODO: Configure this function
   GetTodos:
     handler: src/lambda/http/getTodos.handler
     events:
@@ -54,7 +51,6 @@ functions:
           cors: true
           path: todos
 
-  # TODO: Configure this function
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
@@ -63,8 +59,10 @@ functions:
           path: todos
           authorizer: Auth
           cors: true
+          request:
+            schemas:
+              application/json: ${file(models/create-todo-model.json)}
 
-  # TODO: Configure this function
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
     events:
@@ -73,8 +71,10 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
+          request:
+            schemas:
+              application/json: ${file(models/update-todo-model.json)}
 
-  # TODO: Configure this function
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
     events:
@@ -84,7 +84,6 @@ functions:
           authorizer: Auth
           cors: true
 
-  # TODO: Configure this function
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:

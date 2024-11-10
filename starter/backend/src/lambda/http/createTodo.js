@@ -6,7 +6,7 @@ import { createLogger } from '../../utils/logger.mjs'
 
 const logger = createLogger('get_todo')
 
-const dynamoDbClient = DynamoDBDocument.from(dynamoDb)
+const dynamoDbClient = DynamoDBDocument.from(new DynamoDB())
 const s3Client = new S3Client()
 
 const todosTable = process.env.TODOS_TABLE
@@ -41,11 +41,11 @@ export async function handler(event) {
     const todoId = uuidv4();
     const timestamp = new Date().toISOString();
     const newItem = {
-      timestamp,
+      "createdAt":timestamp,
       todoId, // Make sure this matches the key used in your DynamoDB table schema
       userId,
       done: false,
-      attachmentUrl: `https://${bucketName}.s3.amazonaws.com/${todoId}`,
+      attachmentUrl: null,
       ...newTodo,
     };
     logger.info("Storing new item: ", { newItem });

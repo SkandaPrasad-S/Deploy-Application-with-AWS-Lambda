@@ -3,12 +3,13 @@ import jsonwebtoken from 'jsonwebtoken'
 import { createLogger } from '../../utils/logger.mjs'
 
 const logger = createLogger('auth')
-const jwksUrl = 'https://test-endpoint.auth0.com/.well-known/jwks.json'
+const jwksUrl = 'https://dev-bfcwvysh3y6kk7zf.uk.auth0.com/.well-known/jwks.json'
 
 export async function handler(event) {
   try {
     const jwtToken = await verifyToken(event.authorizationToken)
 
+    logger.info('Token verified successfully', { sub: jwtToken.sub })
     return {
       principalId: jwtToken.sub,
       policyDocument: {
